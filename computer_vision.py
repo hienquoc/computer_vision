@@ -57,3 +57,8 @@ class Computer_vision:
                                           'video_frame': self.video_frame}
         self.debug.print_value_dictionary(self.debug_variable_dictionary)
 
+    def object_tracker_main(self):
+        # Initialize tracker
+        self.setup_tracker()
+        self.read_frame()
+        # Initialize tracker with first frame and bounding box
