@@ -9,6 +9,7 @@ class Computer_vision:
         self.video = None
         self.video_frame = None
         self.video_status = None
+        self.video_file_path = None
         self.debug = Utility()
 
     def setup_tracker(self):
@@ -41,10 +42,12 @@ class Computer_vision:
             for t in trackerTypes:
                 print(t)
 
-    def read_video(self, video_file_path):
+    def read_video(self):
         # Read video
-        self.video = cv2.VideoCapture(video_file_path)
-
+        self.video = cv2.VideoCapture(self.video_file_path)
+        self.debug.title = 'class: Computer_vision def: read_video'
+        self.debug.debug_variable_dictionary = {'video_file_path': self.video_file_path}
+        self.debug.print_value_dictionary(self.debug.debug_variable_dictionary)
         # Exit if video not opened.
         if not self.video.isOpened():
             print("Could not open video")
@@ -53,9 +56,9 @@ class Computer_vision:
         # Read first frame
         self.video_status, self.video_frame = self.video.read()
         self.debug.title = 'class: Computer_vision def: read_frame'
-        self.debug_variable_dictionary = {'video_status': self.video_status,
-                                          'video_frame': self.video_frame}
-        self.debug.print_value_dictionary(self.debug_variable_dictionary)
+        self.debug.debug_variable_dictionary = {'video_status': self.video_status,
+                                                'video_frame': self.video_frame}
+        self.debug.print_value_dictionary(self.debug.debug_variable_dictionary)
 
     def object_tracker_main(self):
         # Initialize tracker
