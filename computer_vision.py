@@ -48,7 +48,7 @@ class Computer_vision:
         self.video = cv2.VideoCapture(self.video_file_path)
         self.debug.title = 'class: Computer_vision def: read_video'
         self.debug.debug_variable_dictionary = {'video_file_path': self.video_file_path}
-        self.debug.print_value_dictionary(self.debug.debug_variable_dictionary)
+        self.debug.print_value_dictionary()
         # Exit if video not opened.
         if not self.video.isOpened():
             print("Could not open video")
@@ -66,5 +66,5 @@ class Computer_vision:
         computer_vision_class_file_path = os.path.abspath(os.getcwd())
         self.video_file_path = computer_vision_class_file_path + '\soccer-ball.mp4'
         self.setup_tracker()
-        self.read_frame()
+        self.read_video()
         # Initialize tracker with first frame and bounding box
