@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from utility.utility import Utility
+import os
 
 
 class Computer_vision:
@@ -62,6 +63,8 @@ class Computer_vision:
 
     def object_tracker_main(self):
         # Initialize tracker
+        computer_vision_class_file_path = os.path.abspath(os.getcwd())
+        self.video_file_path = computer_vision_class_file_path + '\soccer-ball.mp4'
         self.setup_tracker()
         self.read_frame()
         # Initialize tracker with first frame and bounding box
