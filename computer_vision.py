@@ -14,6 +14,27 @@ class Computer_vision:
         self.video_status = None
         self.video_file_path = None
         self.debug = Utility()
+        self.method_selector_dictionary = {}
+        self.computer_vision_attributes = {}
+
+    def method_selector(self):
+        for key in self.method_selector_dictionary:
+            if False:
+                pass
+            elif key == 'setup_tracker':
+                self.setup_tracker()
+            elif key == 'read_video':
+                self.read_video()   # Read video
+            elif key == 'read_frame':
+                self.read_frame()
+            elif key == 'object_tracker_main':
+                self.object_tracker_main()
+            elif key == 'yolo_object_dectection':
+                self.yolo_object_dectection()
+            elif key == 'getOutputsNames':
+                self.getOutputsNames()
+            elif key == 'method_selector':
+                self.method_selector()
 
     def setup_tracker(self):
         # Create a tracker object
@@ -58,12 +79,17 @@ class Computer_vision:
 
     def read_frame(self):
         # Read first frame
-        while == True:
+        while True:
             self.video_status, self.video_frame = self.video.read()
             self.debug.title = 'class: Computer_vision def: read_frame'
             self.debug.debug_variable_dictionary = {'video_status': self.video_status,
                                                     'video_frame': self.video_frame}
-            self.debug.print_value_dictionary()
+            self.method_selector()
+            # self.debug.print_value_dictionary()
+            cv2.imshow('Video', self.video_frame)
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+        cv2.destroyAllWindows()
 
     def object_tracker_main(self):
         # Initialize tracker
@@ -162,3 +188,23 @@ class Computer_vision:
             width = box[2]
             height = box[3]
             drawPred(classIds[i], confidences[i], left, top, left + width, top + height)
+    def initalize_class_attributes(self):
+        self.computer_vision_attributes = {
+            'object_threshold': 0.5,
+            'confidence_threshold': 0.5,
+            'non_maximum_suppression_threshold': 0.4,
+            'input_width': 416,
+            'input_height': 416
+        }
+
+
+
+    def create_blob(self):
+        self.initalize_class_attributes()
+        blob = cv2.dnn.blobFromImage(
+            frame,
+            1 / 255,
+            (self.computer_vision_attributes["input_width"], self.computer_vision_attributes["input_height"]),
+            [0, 0, 0],
+            1,
+            crop=False)
