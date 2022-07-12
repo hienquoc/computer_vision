@@ -388,9 +388,10 @@ class Computer_vision:
             if i in indexes:
                 x, y, w, h = boxes[i]
                 label = str(classes[class_ids[i]])
-                color = colors[class_ids[i]]
-                cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                cv2.putText(img, label, (x, y + 30), font, 3, (255, 0, 0), 3)
+                if label != '':
+                    color = colors[class_ids[i]]
+                    cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    cv2.putText(img, label, (x, y + 30), font, 3, (255, 0, 0), 3)
 
         cv2.imshow("Image", img)
 
