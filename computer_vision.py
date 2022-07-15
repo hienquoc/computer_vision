@@ -24,7 +24,7 @@ class Computer_vision:
             if False:
                 pass
             elif key == 'initialize_class_attributes':
-                self.initalize_class_attributes()
+                self.initialize_class_attributes()
             elif key == 'load_model_and_classes':
                 self.load_model_and_classes()
             elif key == 'yolo_input_network':
@@ -38,27 +38,28 @@ class Computer_vision:
 
         # Tracker selector
         if tracker_type == 'BOOSTING':
-            tracker = cv2.TrackerBoosting_create()
+            self.computer_vision_attributes['tracker'] = cv2.TrackerBoosting_create()
         elif tracker_type == 'MIL':
-            tracker = cv2.TrackerMIL_create()
+            self.computer_vision_attributes['tracker'] = cv2.TrackerMIL_create()
         elif tracker_type == 'KCF':
-            tracker = cv2.TrackerKCF_create()
+            self.computer_vision_attributes['tracker'] = cv2.TrackerKCF_create()
         elif tracker_type == 'TLD':
-            tracker = cv2.TrackerTLD_create()
+            self.computer_vision_attributes['tracker'] = cv2.TrackerTLD_create()
         elif tracker_type == 'MEDIANFLOW':
-            tracker = cv2.TrackerMedianFlow_create()
+            self.computer_vision_attributes['tracker'] = cv2.TrackerMedianFlow_create()
         elif tracker_type == 'GOTURN':
-            tracker = cv2.TrackerGOTURN_create()
+            self.computer_vision_attributes['tracker'] = cv2.TrackerGOTURN_create()
         elif tracker_type == "CSRT":
-            tracker = cv2.TrackerCSRT_create()
+            self.computer_vision_attributes['tracker'] = cv2.TrackerCSRT_create()
         elif tracker_type == "MOSSE":
-            tracker = cv2.TrackerMOSSE_create()
+            self.computer_vision_attributes['tracker'] = cv2.TrackerMOSSE_create()
         else:
             tracker = None
             print('Incorrect tracker name')
             print('Available trackers are:')
-            for t in trackerTypes:
+            for t in tracker_types:
                 print(t)
+        return self.computer_vision_attributes['tracker']
 
     def read_video(self):
         # Read video
@@ -83,6 +84,8 @@ class Computer_vision:
             #self.video_status, self.video_frame = self.video.read()
 
             self.computer_vision_attributes["video_status"], self.computer_vision_attributes["video_frame"] = self.video.read()
+            if self.computer_vision_attributes["video_status"] == False:
+                break
             '''
             # Scale image down
             self.computer_vision_attributes["video_frame"] = cv2.resize(self.computer_vision_attributes["video_frame"],
@@ -254,13 +257,14 @@ class Computer_vision:
                                                     }
             self.debug.print_value_dictionary()
 
-    def initalize_class_attributes(self):
+    def initialize_class_attributes(self):
         self.computer_vision_attributes.update({
             'object_threshold': 0.5,
             'confidence_threshold': 0.5,
             'non_maximum_suppression_threshold': 0.4,
             'input_width': 416,
-            'input_height': 416
+            'input_height': 416,
+            'file-name': 'soccer-ball.mp4',
         })
 
     def create_blob(self):
@@ -279,7 +283,7 @@ class Computer_vision:
 
     def yolo_input_network(self):
         # Set the blob as input to the network
-        self.initalize_class_attributes()
+        self.initialize_class_attributes()
         self.computer_vision_attributes['network'].setInput(self.create_blob())   # Set the input blob
         self.debug.title = 'class: Computer_vision def: yolo_input_network - Start'
         self.debug.debug_variable_dictionary = self.computer_vision_attributes
@@ -333,6 +337,7 @@ class Computer_vision:
 
 
     def yolo_object_detector(self, image):
+        debug = Utility()
         computer_vision_class_file_path = os.path.abspath(os.getcwd())
         self.computer_vision_attributes = {'local_file_path': computer_vision_class_file_path}
         # Load Yolo
@@ -380,6 +385,11 @@ class Computer_vision:
                     boxes.append([x, y, w, h])
                     confidences.append(float(confidence))
                     class_ids.append(class_id)
+                    debug.title = 'class: Computer_vision def: yolo_object_detector - Confidence Check'
+                    debug.debug_variable_dictionary = {
+                        'boxes': boxes
+                    }
+                    debug.print_value_dictionary()
 
         indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
 
@@ -394,6 +404,63 @@ class Computer_vision:
                     cv2.putText(img, label, (x, y + 30), font, 3, (255, 0, 0), 3)
 
         cv2.imshow("Image", img)
+
+    def object_tracking(self, **inputs):
+        self.class_selected_tracker_type = 2
+        tracker = self.setup_tracker()
+        return tracker
+
+    def run_object_tracker(self, **inputs):
+        tracker = self.object_tracking()
+        self.object_tracking_with_video(**{'video_file_path': self.video_file_path,
+                                           'bounding_box': [100, 0, 137, 100],
+                                           'tracker_type': tracker})
+    def return_local_file_path(self, **inputs):
+        computer_vision_class_file_path = os.path.abspath(os.getcwd())
+        result = computer_vision_class_file_path + "\\" + inputs['file_name']
+        return result
+
+    def object_tracking_with_video(self, **inputs):
+
+        """
+        inputs['video_file_path']
+        inputs['bounding_box']
+        inputs['tracker_type']
+
+        """
+        self.debug.title = 'class: Computer_vision def: object_tracking_with_video - Start'
+        self.debug.debug_variable_dictionary = {
+            "inputs['video_file_path']": inputs['video_file_path'],
+            "inputs['bounding_box']": inputs['bounding_box'],
+            "inputs['tracker_type']": inputs['tracker_type']
+            }
+        self.debug.print_value_dictionary()
+        video = cv2.VideoCapture(inputs['video_file_path'])
+        # Exit if video not opened.
+        if not video.isOpened():
+            print("Could not open video")
+
+        # Read first frame.
+        ok, frame = video.read()
+        if not ok:
+            print('Cannot read video file')
+        red = (0, 0, 255)
+        blue = (255, 128, 0)
+
+        # Define an initial bounding box
+        # Cycle
+        bbox = inputs['bounding_box']
+
+        # Initialize tracker with first frame and bounding box
+        ok = inputs['tracker_type'].init(frame, bbox)
+
+        # Display bounding box.
+        p1 = (int(bbox[0]), int(bbox[1]))
+        p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+        cv2.rectangle(frame, p1, p2, blue, 2, 1)
+
+        cv2.imshow("video", frame)
+        cv2.waitKey(0)
 
 
 
