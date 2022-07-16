@@ -318,16 +318,30 @@ class Computer_vision:
         self.debug.debug_variable_dictionary = self.computer_vision_attributes
         self.debug.print_value_dictionary()
 
-    def yolo_object_dector_in_video(self):
+    def yolo_object_detector_in_video(self):
         computer_vision_class_file_path = os.path.abspath(os.getcwd())
         self.read_video()
+        inputs = {'object_found': False}
         while True:
-            self.computer_vision_attributes["video_status"], self.computer_vision_attributes["video_frame"] = self.video.read()
-            if self.computer_vision_attributes["video_status"] == False:
+            self.video_status, self.video_frame = self.video.read()
+            if not self.video_status:
                 break
-            self.yolo_object_detector(self.computer_vision_attributes["video_frame"])
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                break
+            if not inputs['object_found']:
+                inputs = self.yolo_object_detector(self.video_frame)
+                inputs['tracker_type'] = self.object_tracking(inputs)
+                inputs = self.object_tracking_with_video(inputs)
+            if inputs['object_found']:
+                inputs = self.tracker_found_object(inputs)
+
+            self.debug.title = 'class: Computer_vision def: yolo_object_detector_in_video - End of While Loop'
+            self.debug.debug_variable_dictionary = inputs
+
+            self.debug.debug_variable_dictionary = {'computer_vision_class_file_path': computer_vision_class_file_path,
+                                                    'self.video_status': self.video_status,
+                                                    'self.video_frame': self.video_frame}
+            self.debug.print_value_dictionary()
+            cv2.imshow("Computer Vision", self.video_frame)
+            cv2.waitKey(60)
 
 
 
@@ -340,6 +354,7 @@ class Computer_vision:
         debug = Utility()
         computer_vision_class_file_path = os.path.abspath(os.getcwd())
         self.computer_vision_attributes = {'local_file_path': computer_vision_class_file_path}
+        inputs = {'object_found': False}
         # Load Yolo
         net = cv2.dnn.readNet(self.computer_vision_attributes['local_file_path'] + "\yolov3.weights",
                               self.computer_vision_attributes['local_file_path'] + "\yolov3.cfg")
@@ -352,8 +367,8 @@ class Computer_vision:
         colors = np.random.uniform(0, 255, size=(len(classes), 3))
 
         # Loading image
-        img = image
-        img = cv2.resize(img, None, fx=0.4, fy=0.4)
+        img = self.video_frame
+        #img = cv2.resize(img, None, fx=0.4, fy=0.4)
         height, width, channels = img.shape
 
         # Detecting objects
@@ -381,13 +396,14 @@ class Computer_vision:
                     # Rectangle coordinates
                     x = int(center_x - w / 2)
                     y = int(center_y - h / 2)
-
+                    inputs = {'bounding_box': [x, y, w, h]}
                     boxes.append([x, y, w, h])
                     confidences.append(float(confidence))
                     class_ids.append(class_id)
                     debug.title = 'class: Computer_vision def: yolo_object_detector - Confidence Check'
                     debug.debug_variable_dictionary = {
-                        'boxes': boxes
+                        'boxes': boxes,
+                        "inputs['bounding_box']": inputs['bounding_box'],
                     }
                     debug.print_value_dictionary()
 
@@ -397,30 +413,45 @@ class Computer_vision:
         for i in range(len(boxes)):
             if i in indexes:
                 x, y, w, h = boxes[i]
+                inputs['bounding_box'] = [x, y, w, h]
                 label = str(classes[class_ids[i]])
                 if label != '':
                     color = colors[class_ids[i]]
-                    cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                    cv2.putText(img, label, (x, y + 30), font, 3, (255, 0, 0), 3)
+                    cv2.rectangle(self.video_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    cv2.putText(self.video_frame, label, (x, y + 30), font, 3, (255, 0, 0), 3)
+                    inputs['object_found'] = True
 
-        cv2.imshow("Image", img)
 
-    def object_tracking(self, **inputs):
+        #cv2.imshow("Image", img)
+        return inputs
+
+    def object_tracking(self, inputs):
         self.class_selected_tracker_type = 2
         tracker = self.setup_tracker()
+        self.debug.title = 'class: Computer_vision def: object_tracking - Start'
+        self.debug.debug_variable_dictionary = {'tracker': tracker}
+        self.debug.print_value_dictionary()
         return tracker
 
-    def run_object_tracker(self, **inputs):
-        tracker = self.object_tracking()
-        self.object_tracking_with_video(**{'video_file_path': self.video_file_path,
-                                           'bounding_box': [100, 0, 137, 100],
-                                           'tracker_type': tracker})
-    def return_local_file_path(self, **inputs):
-        computer_vision_class_file_path = os.path.abspath(os.getcwd())
-        result = computer_vision_class_file_path + "\\" + inputs['file_name']
-        return result
+    def run_object_tracker(self, inputs):
 
-    def object_tracking_with_video(self, **inputs):
+        self.debug.title = 'class: Computer_vision def: run_object_tracker - Start'
+        self.debug.debug_variable_dictionary = inputs
+        self.debug.print_value_dictionary
+        self.debug.print_value_dictionary()
+        #self.object_tracking_with_video(inputs)
+        #self.object_tracking_with_video_in_loop(inputs)
+        return inputs
+    def object_tracking_with_video_in_loop(self, inputs):
+        while inputs['object_found']:
+            self.video_status, self.video_frame = self.video.read()
+            self.object_tracking_with_video(inputs)
+            cv2.waitKey(30)
+            self.debug.title = 'class: Computer_vision def: object_tracking_with_video_in_loop - End of While Loop'
+            self.debug.debug_variable_dictionary = inputs
+            self.debug.print_value_dictionary()
+
+    def object_tracking_with_video(self, inputs):
 
         """
         inputs['video_file_path']
@@ -429,21 +460,10 @@ class Computer_vision:
 
         """
         self.debug.title = 'class: Computer_vision def: object_tracking_with_video - Start'
-        self.debug.debug_variable_dictionary = {
-            "inputs['video_file_path']": inputs['video_file_path'],
-            "inputs['bounding_box']": inputs['bounding_box'],
-            "inputs['tracker_type']": inputs['tracker_type']
-            }
-        self.debug.print_value_dictionary()
-        video = cv2.VideoCapture(inputs['video_file_path'])
-        # Exit if video not opened.
-        if not video.isOpened():
-            print("Could not open video")
+        self.debug.debug_variable_dictionary = inputs
 
-        # Read first frame.
-        ok, frame = video.read()
-        if not ok:
-            print('Cannot read video file')
+        self.debug.print_value_dictionary()
+
         red = (0, 0, 255)
         blue = (255, 128, 0)
 
@@ -452,16 +472,63 @@ class Computer_vision:
         bbox = inputs['bounding_box']
 
         # Initialize tracker with first frame and bounding box
-        ok = inputs['tracker_type'].init(frame, bbox)
+        inputs['tracker_type'].init(self.video_frame, inputs['bounding_box'])
 
         # Display bounding box.
         p1 = (int(bbox[0]), int(bbox[1]))
         p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-        cv2.rectangle(frame, p1, p2, blue, 2, 1)
+        cv2.rectangle(self.video_frame, p1, p2, blue, 2, 1)
 
-        cv2.imshow("video", frame)
-        cv2.waitKey(0)
 
+        self.debug.title = 'class: Computer_vision def: object_tracking_with_video - End'
+        self.debug.debug_variable_dictionary = inputs
+        self.debug.print_value_dictionary()
+        return inputs
+
+    def tracker_found_object(self, inputs):
+        """
+        Requires:
+        inputs['tracker']
+        inputs['frame']
+        """
+        red = (0, 0, 255)
+        blue = (255, 128, 0)
+        timer = cv2.getTickCount()
+
+        # Update tracker
+        ok, bbox = inputs['tracker_type'].update(self.video_frame)
+
+        # Calculate processing time and display results.
+        # Calculate Frames per second (FPS)
+        fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
+
+        # Draw bounding box
+        if ok:
+            # Tracking success
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+            cv2.rectangle(self.video_frame, p1, p2, (255, 0, 0), 2, 1)
+        else:
+            # Tracking failure
+            cv2.putText(self.video_frame, "Tracking failure detected", (20, 80),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, red, 2)
+            inputs['object_found'] = False
+
+        # Display tracker type on frame
+        #cv2.putText(self.video_frame, self.computer_vision_attributes['tracker'] + " Tracker", (20, 20),
+        #            cv2.FONT_HERSHEY_SIMPLEX, 0.75, blue, 2);
+
+        # Display FPS on frame
+        cv2.putText(self.video_frame, "FPS : " + str(int(fps)), (20, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, blue, 2);
+
+        # Calculate processing time and display results.
+        # Calculate Frames per second (FPS)
+        fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
+        self.debug.title = 'class: Computer_vision def: tracker_found_object - End'
+        self.debug.debug_variable_dictionary = inputs
+        self.debug.print_value_dictionary()
+        return inputs
 
 
     def object_tracker_main(self):
