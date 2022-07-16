@@ -322,11 +322,15 @@ class Computer_vision:
         computer_vision_class_file_path = os.path.abspath(os.getcwd())
         self.read_video()
         inputs = {'object_found': False}
+        red = (0, 0, 255)
+        blue = (255, 128, 0)
         while True:
             self.video_status, self.video_frame = self.video.read()
             if not self.video_status:
                 break
             if not inputs['object_found']:
+                cv2.putText(self.video_frame, "Detecting Ball", (20, 110),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, blue, 2)
                 inputs = self.yolo_object_detector(self.video_frame)
                 inputs['tracker_type'] = self.object_tracking(inputs)
                 inputs = self.object_tracking_with_video(inputs)
@@ -351,6 +355,7 @@ class Computer_vision:
 
 
     def yolo_object_detector(self, image):
+
         debug = Utility()
         computer_vision_class_file_path = os.path.abspath(os.getcwd())
         self.computer_vision_attributes = {'local_file_path': computer_vision_class_file_path}
@@ -376,7 +381,12 @@ class Computer_vision:
 
         net.setInput(blob)
         outs = net.forward(output_layers)
-
+        timing_for_each_layer, _ = net.getPerfProfile()
+        label = 'Inference time: %.2f ms' % (timing_for_each_layer * 1000.0 / cv2.getTickFrequency())
+        cv2.putText(self.video_frame, label, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                    (0, 0, 255))
+        # Display the frame
+        print(label)
         # Showing informations on the screen
         class_ids = []
         confidences = []
@@ -419,6 +429,7 @@ class Computer_vision:
                     color = colors[class_ids[i]]
                     cv2.rectangle(self.video_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                     cv2.putText(self.video_frame, label, (x, y + 30), font, 3, (255, 0, 0), 3)
+
                     inputs['object_found'] = True
 
 
@@ -469,20 +480,21 @@ class Computer_vision:
 
         # Define an initial bounding box
         # Cycle
-        bbox = inputs['bounding_box']
+        if 'bounding_box' in inputs:
+            bbox = inputs['bounding_box']
 
-        # Initialize tracker with first frame and bounding box
-        inputs['tracker_type'].init(self.video_frame, inputs['bounding_box'])
+            # Initialize tracker with first frame and bounding box
+            inputs['tracker_type'].init(self.video_frame, inputs['bounding_box'])
+            inputs['object_found'] = True
+            # Display bounding box.
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+            cv2.rectangle(self.video_frame, p1, p2, blue, 2, 1)
 
-        # Display bounding box.
-        p1 = (int(bbox[0]), int(bbox[1]))
-        p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-        cv2.rectangle(self.video_frame, p1, p2, blue, 2, 1)
 
-
-        self.debug.title = 'class: Computer_vision def: object_tracking_with_video - End'
-        self.debug.debug_variable_dictionary = inputs
-        self.debug.print_value_dictionary()
+            self.debug.title = 'class: Computer_vision def: object_tracking_with_video - End'
+            self.debug.debug_variable_dictionary = inputs
+            self.debug.print_value_dictionary()
         return inputs
 
     def tracker_found_object(self, inputs):
@@ -493,6 +505,7 @@ class Computer_vision:
         """
         red = (0, 0, 255)
         blue = (255, 128, 0)
+        green = (50, 205, 50)
         timer = cv2.getTickCount()
 
         # Update tracker
@@ -507,7 +520,9 @@ class Computer_vision:
             # Tracking success
             p1 = (int(bbox[0]), int(bbox[1]))
             p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-            cv2.rectangle(self.video_frame, p1, p2, (255, 0, 0), 2, 1)
+            cv2.rectangle(self.video_frame, p1, p2, green, 2, 1)
+            cv2.putText(self.video_frame, "Ball Found Now Tracking", (20, 80),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, green, 2)
         else:
             # Tracking failure
             cv2.putText(self.video_frame, "Tracking failure detected", (20, 80),
